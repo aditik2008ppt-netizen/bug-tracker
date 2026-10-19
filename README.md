@@ -1,79 +1,59 @@
-from flask import Flask, redirect, render_template, request, url_for
-import sqlite3
-
-app = Flask(__name__)
+def add(x, y):
+  return x + y
 
 
-def init_sqlite_db():
-  conn = sqlite3.connect("database.db")
-  cursor = conn.cursor()
-  cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bugs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            status TEXT NOT NULL
-        )
-    """)
-  conn.commit()
-  conn.close()
+def subtract(x, y):
+  return x - y
 
 
-@app.route("/")
-def index():
-  conn = sqlite3.connect("database.db")
-  conn.row_factory = sqlite3.Row
-  cursor = conn.cursor()
-  cursor.execute("SELECT * FROM bugs")
-  bugs = cursor.fetchall()
-  conn.close()
-  return render_template("index.html", bugs=bugs)
+def multiply(x, y):
+  return x * y
 
 
-@app.route("/add", methods=["POST"])
-def add_bug():
-  title = request.form["title"]
-  description = request.form["description"]
-  severity = request.form["severity"]
-  status = "Open"
-
-  conn = sqlite3.connect("database.db")
-  cursor = conn.cursor()
-  cursor.execute(
-      "INSERT INTO bugs (title, description, severity, status) VALUES (?, ?, ?,"
-      " ?)",
-      (title, description, severity, status),
-  )
-  conn.commit()
-  conn.close()
-  return redirect(url_for("index"))
+def divide(x, y):
+  if y == 0:
+    return "Error! Division by zero."
+  return x / y
 
 
-@app.route("/update/<int:bug_id>", methods=["POST"])
-def update_status(bug_id):
-  new_status = request.form["status"]
+def calculator():
+  print("==============================")
+  print("       Simple Calculator      ")
+  print("==============================")
+  print("Select operation:")
+  print("1. Add (+)")
+  print("2. Subtract (-)")
+  print("3. Multiply (*)")
+  print("4. Divide (/)")
 
-  conn = sqlite3.connect("database.db")
-  cursor = conn.cursor()
-  cursor.execute(
-      "UPDATE bugs SET status = ? WHERE id = ?", (new_status, bug_id)
-  )
-  conn.commit()
-  conn.close()
-  return redirect(url_for("index"))
+  while True:
+    choice = input("\nEnter choice (1/2/3/4) or 'q' to quit: ")
 
+    if choice.lower() == "q":
+      print("Exiting calculator. Goodbye!")
+      break
 
-@app.route("/delete/<int:bug_id>", methods=["POST"])
-def delete_bug(bug_id):
-  conn = sqlite3.connect("database.db")
-  cursor = conn.cursor()
-  cursor.execute("DELETE FROM bugs WHERE id = ?", (bug_id,))
-  conn.commit()
-  conn.close()
-  return redirect(url_for("index"))
+    if choice in ("1", "2", "3", "4"):
+      try:
+        num1 = float(input("Enter first number: "))
+        num2 = float(input("Enter second number: "))
+      except ValueError:
+        print("Invalid input. Please enter valid numbers only.")
+        continue
+
+      if choice == "1":
+        print(f"Result: {num1} + {num2} = {add(num1, num2)}")
+      elif choice == "2":
+        print(f"Result: {num1} - {num2} = {subtract(num1, num2)}")
+      elif choice == "3":
+        print(f"Result: {num1} * {num2} = {multiply(num1, num2)}")
+      elif choice == "4":
+        print(f"Result: {num1} / {num2} = {divide(num1, num2)}")
+
+      print("-" * 30)
+    else:
+      print("Invalid Input. Please select a valid option (1-4).")
 
 
 if __name__ == "__main__":
-  init_sqlite_db()
-  app.run(debug=True)
+  calculator()
