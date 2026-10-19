@@ -1,41 +1,79 @@
-# dictionarydef dictionary_app():
-    # Pre-populated word dictionary
-    word_dict = {
-        "python": "A high-level, interpreted programming language.",
-        "variable": "A reserved memory location to store values.",
-        "algorithm": "A set of rules to be followed in calculations or problem-solving operations."
-    }
+from flask import Flask, redirect, render_template, request, url_for
+import sqlite3
 
-    while True:
-        print("\n=== PYTHON DICTIONARY MENU ===")
-        print("1. Search a word")
-        print("2. Add a new word")
-        print("3. View all words")
-        print("4. Exit")
-        
-        choice = input("Enter choice (1-4): ").strip()
+app = Flask(__name__)
 
-        if choice == "1":
-            word = input("Enter word to search: ").strip().lower()
-            meaning = word_dict.get(word, "Word not found in dictionary.")
-            print(f"\nMeaning: {meaning}")
 
-        elif choice == "2":
-            word = input("Enter new word: ").strip().lower()
-            meaning = input("Enter meaning: ").strip()
-            word_dict[word] = meaning
-            print(f"'{word}' has been added successfully!")
+def init_sqlite_db():
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bugs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            status TEXT NOT NULL
+        )
+    """)
+  conn.commit()
+  conn.close()
 
-        elif choice == "3":
-            print("\n--- Dictionary Contents ---")
-            for key, val in word_dict.items():
-                print(f"• {key.title()}: {val}")
 
-        elif choice == "4":
-            print("Exiting dictionary app. Goodbye!")
-            break
-        else:
-            print("Invalid choice. Please choose between 1 and 4.")
+@app.route("/")
+def index():
+  conn = sqlite3.connect("database.db")
+  conn.row_factory = sqlite3.Row
+  cursor = conn.cursor()
+  cursor.execute("SELECT * FROM bugs")
+  bugs = cursor.fetchall()
+  conn.close()
+  return render_template("index.html", bugs=bugs)
+
+
+@app.route("/add", methods=["POST"])
+def add_bug():
+  title = request.form["title"]
+  description = request.form["description"]
+  severity = request.form["severity"]
+  status = "Open"
+
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute(
+      "INSERT INTO bugs (title, description, severity, status) VALUES (?, ?, ?,"
+      " ?)",
+      (title, description, severity, status),
+  )
+  conn.commit()
+  conn.close()
+  return redirect(url_for("index"))
+
+
+@app.route("/update/<int:bug_id>", methods=["POST"])
+def update_status(bug_id):
+  new_status = request.form["status"]
+
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute(
+      "UPDATE bugs SET status = ? WHERE id = ?", (new_status, bug_id)
+  )
+  conn.commit()
+  conn.close()
+  return redirect(url_for("index"))
+
+
+@app.route("/delete/<int:bug_id>", methods=["POST"])
+def delete_bug(bug_id):
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute("DELETE FROM bugs WHERE id = ?", (bug_id,))
+  conn.commit()
+  conn.close()
+  return redirect(url_for("index"))
+
 
 if __name__ == "__main__":
-    dictionary_app()
+  init_sqlite_db()
+  app.run(debug=True)
